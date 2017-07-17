@@ -1,13 +1,16 @@
 package dtrix.quakeit;
 
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
@@ -71,6 +74,10 @@ public class EarthQuakeAdapter extends ArrayAdapter<EarthQuake> {
 		holder.textView2.setText(location[1]);
 		holder.textView5.setText(location[0]);
 
+        GradientDrawable drawable = (GradientDrawable)holder.textView1.getBackground();
+        int magcircle = setmagcolor(quake.getMagnitude());
+        drawable.setColor(magcircle);
+
         return convertView;
     }
 
@@ -86,20 +93,62 @@ public class EarthQuakeAdapter extends ArrayAdapter<EarthQuake> {
 
     private String modifytime (long time){
         Date object = new Date(time);
-        SimpleDateFormat dateFormat =new SimpleDateFormat("h:m a");
+        SimpleDateFormat dateFormat =new SimpleDateFormat("hh:mm a");
         return dateFormat.format(object);
     }
 
     private String[] splitter(String string){
         String[] array =null;
         int i =0;
-        if(string.contains(", ")){
-            i = string.indexOf(",");
-            array= new String[]{string.substring(0, i), string.substring(i + 2)};
+        if(string.contains("of ")){
+            i = string.indexOf("of");
+            array= new String[]{string.substring(0, i), string.substring(i + 3)};
         }
         else {
             array = new String[]{"", string};
         }
         return array;
+    }
+
+    private int setmagcolor(double mag){
+        int i = (int)Math.floor(mag);
+        int id ;
+        switch (i){
+            case 0:
+                id= R.color.zero;
+                break;
+            case 1:
+                id= R.color.one;
+                break;
+            case 2:
+                id= R.color.two;
+                break;
+            case 3:
+                id= R.color.three;
+                break;
+            case 4:
+                id= R.color.four;
+                break;
+            case 5:
+                id= R.color.five;
+                break;
+            case 6:
+                id= R.color.six;
+                break;
+            case 7:
+                id= R.color.seven;
+                break;
+            case 8:
+                id= R.color.eight;
+                break;
+            case 9:
+                id= R.color.nine;
+                break;
+            default:
+                id= R.color.tenplus;
+                break;
+        }
+
+        return ContextCompat.getColor(getContext(),id);
     }
 }
