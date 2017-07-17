@@ -85,13 +85,13 @@ public class EarthQuakeAdapter extends ArrayAdapter<EarthQuake> {
         private TextView textView1,textView2,textView3,textView4,textView5;
     }
 
-    private String modifydate(long time){
+    private static String modifydate(long time){
         Date object = new Date(time);
         SimpleDateFormat dateFormat =new SimpleDateFormat("LLL dd ,yyyy");
         return dateFormat.format(object);
     }
 
-    private String modifytime (long time){
+    private static String modifytime (long time){
         Date object = new Date(time);
         SimpleDateFormat dateFormat =new SimpleDateFormat("hh:mm a");
         return dateFormat.format(object);
