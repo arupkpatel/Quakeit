@@ -1,103 +1,132 @@
 package dtrix.quakeit;
 
+import android.os.AsyncTask;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ListView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class MainActivity extends AppCompatActivity {
 
     private ListView listView =null;
-
+    private final String dataurl = "https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=2017-07-09T14:51:51&endtime=2017-07-09T18:51:51&format=geojson";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ArrayList<EarthQuake> quakeArrayList =new ArrayList<>();
-        /*quakeArrayList.add(new EarthQuake(1.2f,"India"," 14 march 2017","4:00pm") );
-        quakeArrayList.add(new EarthQuake(2.2f,"America"," 16 march 2017","6:00am" ));
-        quakeArrayList.add(new EarthQuake(3.2f,"UK"," 18 march 2017","2:00pm" ));
-        quakeArrayList.add(new EarthQuake(4.2f,"Russia"," 19 march 2017","8:00am" ));
-        quakeArrayList.add(new EarthQuake(5.2f,"Japan"," 20 march 2017","11:00pm" ));
-        quakeArrayList.add(new EarthQuake(6.2f,"Somlia"," 24 march 2017","01:00am" ));*/
-
-        EarthQuake quake=null;
-        JSONObject object=null;
-        JSONArray jsonArray=null;
-
-        try {
-            object = new JSONObject(getJSONFile(R.raw.data));
-            jsonArray = object.getJSONArray("features");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        for(int i=0;i<jsonArray.length();i++){
-            JSONObject obj = null;
-            String location=null;
-            long time=0;
-            double mag=0;
-            try {
-                obj =jsonArray.getJSONObject(i).getJSONObject("properties");
-                mag=obj.getDouble("mag");
-                DecimalFormat dff = new DecimalFormat("#.#");
-                mag= Double.parseDouble(dff.format(mag));
-                location = obj.getString("place");
-                time=obj.getLong("time");
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            quake = new EarthQuake(mag,location,"date",time);
-            quakeArrayList.add(quake);
-
-        }
-
-
-        EarthQuakeAdapter adapter =new EarthQuakeAdapter(getApplicationContext(),R.layout.row2,quakeArrayList);
-
-        listView =(ListView) findViewById(R.id.listview);
-        listView.setAdapter(adapter);
-
-
+        new getData().execute();
 
     }
 
-    private String getJSONFile(int resid){
-
-        InputStream inputStream = null;
-        String json =null;
-
-        try{
-            inputStream=getResources().openRawResource(resid);
-            int size = inputStream.available();
-            byte[] buffer =new byte[size];
-            inputStream.read(buffer);
-            json = new String(buffer,"UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }finally {
-            if(inputStream != null)
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+    private class getData extends AsyncTask<URL,Void,ArrayList<EarthQuake>>{
+        @Override
+        protected ArrayList<EarthQuake> doInBackground(URL... params) {
+            URL url =null;
+            try{
+                url = new URL(dataurl);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            String jfile = makerequest(url);
+            ArrayList<EarthQuake> list =null;
+            try {
+                list = getjsonfile(jfile);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return list;
         }
 
-        return json;
+        @Override
+        protected void onPostExecute(ArrayList<EarthQuake> quakeArrayList) {
+            listView = (ListView) findViewById(R.id.listview);
+            listView.setAdapter(new EarthQuakeAdapter(MainActivity.this,R.layout.row2,quakeArrayList));
+        }
+
+        private String makerequest(URL site){
+            InputStream stream =null;
+            String json= "";
+            HttpURLConnection urlConnection =null;
+            try{
+                urlConnection = (HttpURLConnection) site.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.setReadTimeout(10000);
+                urlConnection.setConnectTimeout(15000);
+                urlConnection.connect();
+                stream=urlConnection.getInputStream();
+                json = inputString(stream);
+
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }finally {
+                if(urlConnection != null)
+                    urlConnection.disconnect();
+                if(stream!=null)
+                    try {
+                        stream.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+            }
+            return json;
+
+        }
+
+        private String inputString(InputStream stream) throws IOException {
+            StringBuilder output =new StringBuilder("");
+            if(stream != null){
+                InputStreamReader inputStreamReader = new InputStreamReader(stream, Charset.forName("UTF-8"));
+                BufferedReader reader = new BufferedReader(inputStreamReader);
+                String line = reader.readLine() ;
+                while(line != null) {
+                    output.append(line);
+                    line = reader.readLine();
+                }
+            }
+            return output.toString();
+        }
+
+        private ArrayList<EarthQuake> getjsonfile(String str) throws JSONException {
+            ArrayList<EarthQuake> quakelist = new ArrayList<>();
+            JSONObject jobj=null;
+            JSONArray jarr=null;
+
+            jobj=new JSONObject(str);
+            jarr=jobj.getJSONArray("features");
+            for(int i=0;i<jarr.length();i++){
+                JSONObject nobj = jarr.getJSONObject(i).getJSONObject("properties");
+                String data= nobj.getString("place");
+                double mag= nobj.getDouble("mag");
+                long time =nobj.getLong("time");
+                EarthQuake earthQuake = new EarthQuake(mag,data,time);
+                quakelist.add(earthQuake);
+            }
+            return quakelist;
+        }
     }
 }

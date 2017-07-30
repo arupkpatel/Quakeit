@@ -9,13 +9,12 @@ import java.util.Date;
 
 public class EarthQuake {
     private double magnitude=0.0;
-    private String location=null,date=null;
+    private String location=null;
     private long time =0;
 
-    public EarthQuake(double magnitude, String location, String date, long time) {
+    public EarthQuake(double magnitude, String location, long time) {
         this.magnitude = magnitude;
         this.location = location;
-        this.date = date;
         this.time = time;
     }
 
@@ -35,13 +34,6 @@ public class EarthQuake {
         this.location = location;
     }
 
-    public String getDate() {
-        return date;
-    }
-
-    public void setDate(String date) {
-        this.date = date;
-    }
 
     public long getTime() {
         return time;
