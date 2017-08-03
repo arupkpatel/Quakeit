@@ -76,9 +76,12 @@ public class MainActivity extends AppCompatActivity {
                 urlConnection.setReadTimeout(10000);
                 urlConnection.setConnectTimeout(15000);
                 urlConnection.connect();
-                stream=urlConnection.getInputStream();
-                json = inputString(stream);
-
+                if(urlConnection.getResponseCode()==200) {
+                    stream = urlConnection.getInputStream();
+                    json = inputString(stream);
+                }else{
+                    Log.e("Quakeit",urlConnection.getResponseMessage());
+                }
             } catch (ProtocolException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -112,6 +115,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private ArrayList<EarthQuake> getjsonfile(String str) throws JSONException {
+            if(str==null){
+                Log.e("Quakeit","Empty String, can't JSONFile");
+            }
             ArrayList<EarthQuake> quakelist = new ArrayList<>();
             JSONObject jobj=null;
             JSONArray jarr=null;
