@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">Quake it</string>
+    <string name="app_name">Quake it</string>  
+    <string name="Question">Accompained by Tsunami :</string>
+    <string name="Yes">Yes</string>
+    <string name="No">No</string>
+    <string name="activity2">EarthQuakeDetailAdapter</string>
 </resources>

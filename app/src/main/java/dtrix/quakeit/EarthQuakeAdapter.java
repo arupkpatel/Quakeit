@@ -13,6 +13,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -66,9 +67,10 @@ public class EarthQuakeAdapter extends ArrayAdapter<EarthQuake> {
         String time = modifytime(quake.getTime());
 //        String str = quake.getLocation();
         String[] location = splitter(quake.getLocation());
+        double mag = format(quake.getMagnitude());
 
 
-        holder.textView1.setText(String.valueOf(quake.getMagnitude()));
+        holder.textView1.setText(String.valueOf(mag));
         holder.textView3.setText(date);
         holder.textView4.setText(time);
 		holder.textView2.setText(location[1]);
@@ -108,6 +110,12 @@ public class EarthQuakeAdapter extends ArrayAdapter<EarthQuake> {
             array = new String[]{"", string};
         }
         return array;
+    }
+
+    private double format(double d){
+        DecimalFormat format = new DecimalFormat("0.0");
+        d= Double.parseDouble(format.format(d));
+        return d;
     }
 
     private int setmagcolor(double mag){

@@ -1,11 +1,21 @@
 package dtrix.quakeit;
 
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,12 +35,14 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
 public class MainActivity extends AppCompatActivity {
 
     private ListView listView =null;
+    private static String str = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=0&starttime=";
     private final String dataurl = "https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=2017-07-09T14:51:51&endtime=2017-07-09T18:51:51&format=geojson";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,28 +54,65 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class getData extends AsyncTask<URL,Void,ArrayList<EarthQuake>>{
+
+        @Override
+        protected void onPreExecute() {
+            ConnectivityManager connectivityManager =(ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+            boolean isConnected = info!=null & info.isConnectedOrConnecting();
+            if(!isConnected){
+                Toast.makeText(getApplicationContext(),"No Connection",Toast.LENGTH_SHORT).show();
+            }
+        }
+
         @Override
         protected ArrayList<EarthQuake> doInBackground(URL... params) {
             URL url =null;
             try{
-                url = new URL(dataurl);
+                url = new URL(sdate(str));
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
             String jfile = makerequest(url);
-            ArrayList<EarthQuake> list =null;
+            ArrayList<EarthQuake> list = null;
             try {
                 list = getjsonfile(jfile);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+
+            //Notification
+            NotificationCompat.Builder mBuilder =
+                    (NotificationCompat.Builder) new NotificationCompat.Builder(getApplicationContext())
+                            .setSmallIcon(R.mipmap.ic_launcher_round)
+                            .setContentTitle("Quakeit")
+                            .setContentText("EarthQuake Alert!");
+
+            int setNId=1;
+            NotificationManager nmgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            nmgr.notify(setNId,mBuilder.build());
+
             return list;
         }
 
+
+
         @Override
-        protected void onPostExecute(ArrayList<EarthQuake> quakeArrayList) {
+        protected void onPostExecute(final ArrayList<EarthQuake> quakeArrayList) {
             listView = (ListView) findViewById(R.id.listview);
             listView.setAdapter(new EarthQuakeAdapter(MainActivity.this,R.layout.row2,quakeArrayList));
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    Intent i =new Intent(view.getContext() ,EarthQuakeDetailAdapter.class);
+                    EarthQuake quake = quakeArrayList.get(position);
+                    String str[] = {String.valueOf(quake.getMagnitude()),quake.getLocation(), String.valueOf(quake.getTsunami_response()),
+                            String.valueOf(quake.getLattitude()), String.valueOf(quake.getLongitude())};
+                    i.putExtra("TResponse",str);
+                    startActivity(i);
+
+                }
+            });
         }
 
         private String makerequest(URL site){
@@ -129,10 +178,23 @@ public class MainActivity extends AppCompatActivity {
                 String data= nobj.getString("place");
                 double mag= nobj.getDouble("mag");
                 long time =nobj.getLong("time");
-                EarthQuake earthQuake = new EarthQuake(mag,data,time);
+                int t_response=nobj.getInt("tsunami");
+                JSONArray array = jarr.getJSONObject(i).getJSONObject("geometry").getJSONArray("coordinates");
+                double lat = array.getDouble(0);
+                double lon = array.getDouble(1);
+                EarthQuake earthQuake = new EarthQuake(mag,data,time,t_response,lat,lon);
                 quakelist.add(earthQuake);
             }
             return quakelist;
         }
+
+        private String sdate(String string){
+            Date date =new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+            String sda= string+sdf.format(date);
+            return sda;
+        }
+
     }
 }
