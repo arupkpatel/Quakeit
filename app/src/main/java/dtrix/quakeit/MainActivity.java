@@ -1,11 +1,19 @@
 package dtrix.quakeit;
 
-import android.os.AsyncTask;
-import android.os.StrictMode;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,24 +33,104 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<List<EarthQuake>> {
 
     private ListView listView =null;
-    private final String dataurl = "https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=2017-07-09T14:51:51&endtime=2017-07-09T18:51:51&format=geojson";
+    private ProgressBar progressBar=null;
+    private TextView tv=null;
+//    private boolean isconnected;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        new getData().execute();
+      /*  ConnectivityManager manager =(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+        NetworkInfo info = manager.getActiveNetworkInfo();
+        isconnected = info!=null && info.isConnectedOrConnecting();*/
+        boolean isconnected = checkconection(getApplicationContext());
+        Log.i("check","oc");
+        listView = (ListView) findViewById(R.id.listview);
+        progressBar= (ProgressBar)findViewById(R.id.pbar);
+        tv = (TextView) findViewById(R.id.ltview);
+        getSupportLoaderManager().initLoader(1,null,this).forceLoad();
+        if(!isconnected)
+            tv.setText(R.string.connection);
 
     }
 
-    private class getData extends AsyncTask<URL,Void,ArrayList<EarthQuake>>{
+
+
+    @Override
+    public Loader<List<EarthQuake>> onCreateLoader(int id, Bundle args) {
+        Log.i("check","ocl");
+
+        progressBar.setVisibility(View.VISIBLE);
+        return new Earthquakeloader(MainActivity.this);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<List<EarthQuake>> loader, List<EarthQuake> data) {
+        Log.i("check","olf");
+        if(listView != null) {
+            if (data == null) {
+                tv.setVisibility(View.VISIBLE);
+                listView.setEmptyView(tv);
+            }else
+                listView.setAdapter(new EarthQuakeAdapter(MainActivity.this,R.layout.row2,data));
+            progressBar.setVisibility(View.INVISIBLE);
+
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<List<EarthQuake>> loader) {
+        Log.i("check","olr");
+        if(listView != null)
+            listView.setAdapter(new EarthQuakeAdapter(MainActivity.this,R.layout.row2,new ArrayList<EarthQuake>()));
+
+    }
+
+
+    private boolean checkconection(Context mcontext){
+        ConnectivityManager cm=(ConnectivityManager)mcontext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = cm.getActiveNetworkInfo();
+        return info != null && info.isConnectedOrConnecting();
+    }
+    //innerclass
+
+    /*private class getData extends AsyncTaskLoader<List<EarthQuake>> {
+
+        public getData(Context context) {
+            super(context);
+        }
+
         @Override
+        public List<EarthQuake> loadInBackground() {
+            URL url =null;
+            try{
+                url = new URL(dataurl);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            String jfile = makerequest(url);
+            ArrayList<EarthQuake> list =null;
+            try {
+                list = getjsonfile(jfile);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return list;
+        }
+
+
+
+
+      *//*  @Override
         protected ArrayList<EarthQuake> doInBackground(URL... params) {
             URL url =null;
             try{
@@ -62,9 +150,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(ArrayList<EarthQuake> quakeArrayList) {
-            listView = (ListView) findViewById(R.id.listview);
-            listView.setAdapter(new EarthQuakeAdapter(MainActivity.this,R.layout.row2,quakeArrayList));
-        }
+
+        }*//*
 
         private String makerequest(URL site){
             InputStream stream =null;
@@ -128,5 +215,5 @@ public class MainActivity extends AppCompatActivity {
             }
             return quakelist;
         }
-    }
+    }*/
 }
